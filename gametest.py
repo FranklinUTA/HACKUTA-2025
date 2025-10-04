@@ -1,18 +1,23 @@
-import pygame
-from pygame.locals import *
+import cv
+import mediapipe as mp
 
-pygame.init()
-screen_width = 800
-screen_height = 600
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Simple Game")
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 600)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 400)
 
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+mp_hands = mp.solutions.hands
+hand = mp_hands.Hands()
 
+while True:
+    success, frame = cap.read()
+    if success:
+        RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        result = hand.process(frame)
+        if result.multi_hand_landmarks:
+            for hand_landmarks in result.multi_hand_landmarks:
+                print(hand_landmarks)
+        cv2.imshow("capture image", frame)
+        if cv2.waitKey(1) == ord('q'):
+            break
 
-pygame.quit()
-
+cv2.destroyAllWindows()
