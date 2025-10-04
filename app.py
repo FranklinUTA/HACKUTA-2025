@@ -1,23 +1,48 @@
-from flask import Flask, render_template, url_for 
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, jsonify, request, render_template, redirect
+
+import sqlite3
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-db =  SQLAlchemy(app)
 
-class Todo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
-    completed = db.Column(db.Integer, default=0)
-    date_created = db.Column(db.DateTime, default=datetime.utcnow) 
+def initialdb():
+    with sqlite3.connect('workout.db') as conn:
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS entries
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      date TEXT,
+                      exercise TEXT,
+                      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, 
+                      set INTEGER,
+                      reps INTEGER,
+                      weight REAL,
+                      notes TEXT)''')  # Added missing comma
+        conn.commit()
+    
 
-    def __repr__(self):
-        return '<Task %r>' % self.id
-
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("index.html")
+    with sqlite3.connect('workout.db') as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM entries ORDER BY date DESC, timestamp DESC")
+        entries = c.fetchall()
+        return render_template('index.html', entries=entries)
 
-if __name__ == "__main__":
-    app.run(debug=True) 
+@app.route('/add', methods=['POST'])
+def add_entry():
+    with sqlite3.connect('workout.db') as conn:
+        c = conn.cursor()
+        date = request.form['date']
+        exercise = request.form['exercise']
+        set = request.form['set']
+        reps = request.form['reps']
+        weight = request.form['weight']
+        notes = request.form['notes']
+        c.execute("INSERT INTO entries (date, exercise, set, reps, weight, notes) VALUES(?,?,?,?,?,?,?)", (date,exercise,set,reps,weight,notes) )
+        conn.commit()
+        return redirect('/')
+    
+if __name__ == '__main__':
+    initialdb()
+    app.run(debug=True)
+    
