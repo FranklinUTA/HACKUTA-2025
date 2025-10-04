@@ -34,9 +34,9 @@ def add_entry():
         c = conn.cursor()
         date = request.form['date']
         exercise = request.form['exercise']
-        set_ = request.form['_set']
-        reps = request.form['reps']
-        weight = request.form['weight']
+        set_ = int(request.form['_set'])
+        reps = int(request.form['reps'])
+        weight = float(request.form['weight'])
         notes = request.form['notes']
         c.execute("INSERT INTO entries (date, exercise, _set, reps, weight, notes) VALUES(?,?,?,?,?,?)", (date,exercise, set_, reps,weight,notes) )
         conn.commit()
