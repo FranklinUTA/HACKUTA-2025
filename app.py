@@ -38,9 +38,11 @@ def add_entry():
         reps = request.form['reps']
         weight = request.form['weight']
         notes = request.form['notes']
-        c.execute("INSERT INTO entries (date, exercise, set, reps, weight, notes) VALUES(?,?,?,?,?,?)", (date,exercise, set_, reps,weight,notes) )
+        c.execute("INSERT INTO entries (date, exercise, _set, reps, weight, notes) VALUES(?,?,?,?,?,?)", (date,exercise, set_, reps,weight,notes) )
         conn.commit()
         return redirect('/')
+    
+
 if __name__ == '__main__':
     initialdb()
     app.run(debug=True)
