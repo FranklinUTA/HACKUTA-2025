@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Entries</title>
+</head>
+<body>
+    <h1>Workout Entries</h1>
+    <form action="/add" method="post">
+        <label>Date: <input type="date" name="date" required></label><br>
+        <label>Exercise: <input type="text" name="exercise" required></label><br>
+        <label>Set: <input type="number" name="_set" required></label><br>
+        <label>Reps: <input type="number" name="reps" required></label><br>
+        <label>Weight: <input type="number" step="any" name="weight" required></label><br>
+        <label>Notes: <input type="text" name="notes"></label><br>
+        <button type="submit">Add Entry</button>
+    </form>
+    <h2>All Entries</h2>
+    <table border="1">
+        <tr>
+            <th>Date</th>
+            <th>Exercise</th>
+            <th>Set</th>
+            <th>Reps</th>
+            <th>Weight</th>
+            <th>Notes</th>
+        </tr>
+        {% for entry in entries %}
+        <tr>
+            <td>{{ entry[1] }}</td>
+            <td>{{ entry[2] }}</td>
+            <td>{{ entry[4] }}</td>
+            <td>{{ entry[5] }}</td>
+            <td>{{ entry[6] }}</td>
+            <td>{{ entry[7] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
