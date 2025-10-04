@@ -18,7 +18,6 @@ def initialdb():
                       weight REAL,
                       notes TEXT)''')  # Added missing comma
         conn.commit()
-        conn.close()
 
 @app.route('/')
 def index():
@@ -28,7 +27,6 @@ def index():
 
         entries = c.fetchall()
         return render_template('index.html', entries=entries)
-    conn.close()
 
 @app.route('/add', methods=['POST'])
 def add_entry():
@@ -36,18 +34,18 @@ def add_entry():
         c = conn.cursor()
         date = request.form['date']
         exercise = request.form['exercise']
-        set = request.form['set']
-        repts = request.form['reps']
+        set_ = request.form['set']
+        reps = request.form['reps']
         weight = request.form['weight']
         notes = request.form['notes']
-        c.execute("INSERT INTO entries (date, exercise, set, reps, weight, notes) VALUES(?,?,?,?,?,?,?)" )
+        c.execute("INSERT INTO entries (date, exercise, set, reps, weight, notes) VALUES(?,?,?,?,?,?)", (date,exercise, set_, reps,weight,notes) )
         conn.commit()
-        conn.close()
         return redirect('/')
 if __name__ == '__main__':
     initialdb()
     app.run(debug=True)
-    
+
+
 
         
         
