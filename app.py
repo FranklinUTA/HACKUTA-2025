@@ -13,7 +13,7 @@ def initialdb():
                       date TEXT,
                       exercise TEXT,
                       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, 
-                      set INTEGER,
+                      _set INTEGER,
                       reps INTEGER,
                       weight REAL,
                       notes TEXT)''')  # Added missing comma
@@ -34,7 +34,7 @@ def add_entry():
         c = conn.cursor()
         date = request.form['date']
         exercise = request.form['exercise']
-        set_ = request.form['set']
+        set_ = request.form['_set']
         reps = request.form['reps']
         weight = request.form['weight']
         notes = request.form['notes']
