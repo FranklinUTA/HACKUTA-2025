@@ -1,25 +1,30 @@
 import pygame
 from pygame.locals import *
+import cv2
+import mediapipe as mp
 
+# --- Pygame setup ---
 pygame.init()
-
 clock = pygame.time.Clock()
 fps = 60
-
 screen_width = 864
 screen_height = 936
-
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Freaky Bird')
 
-#define game variables
 ground_scroll = 0
 scroll_speed = 4
-
-#load images
 bg = pygame.image.load('img/bg.png')
 ground_img = pygame.image.load('img/ground.png')
 
+# --- MediaPipe setup ---
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 600)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 400)
+mp_hands = mp.solutions.hands
+hand_detector = mp_hands.Hands()
+
+# --- Bird class ---
 class Bird(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -35,7 +40,7 @@ class Bird(pygame.sprite.Sprite):
         self.vel = 0
         self.clicked = False
     
-    def update(self):
+    def update(self, jump_signal):
         #gravity
         self.vel += 0.5
         if self.vel > 8:
@@ -43,47 +48,50 @@ class Bird(pygame.sprite.Sprite):
         if self.rect.bottom < 768 :
             self.rect.y += int(self.vel)
 
-        #jump | change this to when tongue gets stuck out
-        if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+        #jump: use jump_signal from hand detection
+        if jump_signal and not self.clicked:
             self.clicked = True
             self.vel = -10
-        if pygame.mouse.get_pressed()[0] == 0:
+        if not jump_signal:
             self.clicked = False
 
         #handle animation
         self.counter += 1
         flap_cooldown = 10
-
         if self.counter > flap_cooldown:
             self.counter = 0
             self.index += 1
             if self.index >= len(self.images):
                 self.index = 0
         self.image = self.images[self.index]
-        
-        #rotate the bird
         self.image = pygame.transform.rotate(self.images[self.index], self.vel * -2)
 
 bird_group = pygame.sprite.Group()
-
 freaky = Bird(100, int(screen_height / 2))
-
 bird_group.add(freaky)
 
-
-#game loop
+# --- Main loop ---
 run = True
 while run:
-
     clock.tick(fps)
+    jump_signal = False
 
-    #background
+    # --- Webcam/hand detection ---
+    success, frame = cap.read()
+    if success:
+        RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        result = hand_detector.process(RGB_frame)
+        if result.multi_hand_landmarks:
+            jump_signal = True  # Jump if any hand is detected
+        # Optionally show webcam window for debugging:
+        # cv2.imshow("capture image", frame)
+        # if cv2.waitKey(1) == ord('q'):
+        #     break
+
+    # --- Pygame drawing ---
     screen.blit(bg, (0,0))
-
     bird_group.draw(screen)
-    bird_group.update()
-
-    #scrolling ground
+    bird_group.update(jump_signal)
     screen.blit(ground_img, (ground_scroll,768))
     ground_scroll -= scroll_speed
     if abs(ground_scroll) > 35:
@@ -94,5 +102,8 @@ while run:
             run = False
 
     pygame.display.update()
-        
+
+# --- Cleanup ---
+cap.release()
+cv2.destroyAllWindows()
 pygame.quit()
