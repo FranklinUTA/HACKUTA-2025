@@ -209,7 +209,7 @@ pipe_group = pygame.sprite.Group()
 freaky = Bird(100, int(screen_height / 4))
 bird_group.add(freaky)
 button = Button(screen_width // 2 - 50, screen_height // 2 - 100, button_img)
-quit = Button(screen_width // 2 - 80, screen_height // 2 - 30, quit_img)
+quit = Button(screen_width // 2 - 33, screen_height // 2 - 30, quit_img)
 
 # --- Game loop ---
 run = True
