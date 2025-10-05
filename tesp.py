@@ -1,30 +1,37 @@
+
 import pygame
 from pygame.locals import *
+import random
 import cv2
 import mediapipe as mp
 
 # --- Pygame setup ---
 pygame.init()
 clock = pygame.time.Clock()
-fps = 120
+fps = 60
 screen_width = 864
 screen_height = 936
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Freaky Bird')
 
 ground_scroll = 0
-scroll_speed = 8
+scroll_speed = 4
 bg = pygame.image.load('img/bg.png')
 ground_img = pygame.image.load('img/ground.png')
+flying = True  # Set to True to enable gravity and jumping
+game_over = False
 
-# --- MediaPipe setup ---
+# --- MediaPipe Face Mesh setup ---
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 600)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 400)
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh()
 
-# --- Bird class ---
+def draw_text(text, font, text_color, x, y):
+    img = font.render(text, True, text_color)
+    screen.blit(img, (x, y))
+
 class Bird(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -41,30 +48,37 @@ class Bird(pygame.sprite.Sprite):
         self.clicked = False
     
     def update(self, jump_signal):
+        global flying, game_over
         #gravity
-        self.vel += 0.5
-        if self.vel > 8:
-            self.vel = 8
-        if self.rect.bottom < 768 :
-            self.rect.y += int(self.vel)
+        if flying:
+            self.vel += 0.5
+            if self.vel > 8:
+                self.vel = 8
+            if self.rect.bottom < 768:
+                self.rect.y += int(self.vel)
 
-        #jump: use jump_signal from hand detection
-        if jump_signal and not self.clicked:
-            self.clicked = True
-            self.vel = -10
-        if not jump_signal:
-            self.clicked = False
+        if not game_over:
+            #jump: use jump_signal from face mesh detection
+            if jump_signal and self.clicked == False:
+                self.clicked = True
+                self.vel = -10
+            if not jump_signal:
+                self.clicked = False
 
-        #handle animation
-        self.counter += 1
-        flap_cooldown = 10
-        if self.counter > flap_cooldown:
-            self.counter = 0
-            self.index += 1
-            if self.index >= len(self.images):
-                self.index = 0
-        self.image = self.images[self.index]
-        self.image = pygame.transform.rotate(self.images[self.index], self.vel * -2)
+            #handle animation
+            self.counter += 1
+            flap_cooldown = 10
+
+            if self.counter > flap_cooldown:
+                self.counter = 0
+                self.index += 1
+                if self.index >= len(self.images):
+                    self.index = 0
+            self.image = self.images[self.index]
+            #rotate the bird
+            self.image = pygame.transform.rotate(self.images[self.index], self.vel * -2)
+        else:
+            self.image = pygame.transform.rotate(self.images[self.index], -90)
 
 bird_group = pygame.sprite.Group()
 freaky = Bird(100, int(screen_height / 2))
@@ -88,16 +102,15 @@ while run:
                 mouth_open = abs(upper_lip.y - lower_lip.y)
                 if mouth_open > 0.04:  # Adjust threshold for your face/camera
                     jump_signal = True
-        # Optionally show webcam window for debugging:
-        # cv2.imshow("capture image", frame)
-        # if cv2.waitKey(1) == ord('q'):
-        #     break
 
-    # --- Pygame drawing ---
+    #background
     screen.blit(bg, (0,0))
+
     bird_group.draw(screen)
     bird_group.update(jump_signal)
     screen.blit(ground_img, (ground_scroll,768))
+
+    #scrolling ground
     ground_scroll -= scroll_speed
     if abs(ground_scroll) > 35:
         ground_scroll = 0
@@ -107,7 +120,7 @@ while run:
             run = False
 
     pygame.display.update()
-
+        
 # --- Cleanup ---
 cap.release()
 cv2.destroyAllWindows()
