@@ -202,6 +202,10 @@ while run:
         game_over = True
         flying = False
 
+    if score > highscore:
+        set_highscore(score)
+        highscore = score
+
     if game_over == False and flying == True:
         #gen new pipes
         time_now = pygame.time.get_ticks()
