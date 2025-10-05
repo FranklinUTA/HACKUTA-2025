@@ -5,6 +5,5 @@ numpy==1.26.4
 requests==2.31.0
 flask==3.0.1
 
-run installs/programs using 3.11
-ex: 'pip3.11'
-    'python3.11;
+# run installs/programs using Python 3.11
+# ex: pip3.11 install -r requirements.txt
