@@ -216,7 +216,12 @@ start_menu = True
 while start_menu:
     screen.blit(bg, (0, 0))
     screen.blit(ground_img, (0, 768))
-    draw_text("Freaky Bird", font, white, screen_width // 2 - 150, 100)
+    # Show logo image
+    logo_img = pygame.image.load('img/logo.png')
+    # Scale the logo to a larger and vertically stretched size (e.g., 300x140)
+    logo_img = pygame.transform.smoothscale(logo_img, (300, 140))
+    logo_rect = logo_img.get_rect(center=(screen_width // 2, 170))
+    screen.blit(logo_img, logo_rect)
 
     # Draw start button
     if start.draw():
