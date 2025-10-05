@@ -1,7 +1,20 @@
+import subprocess
+import os
+import time
+
 import requests
 
 import pygame
 from pygame.locals import *
+
+# Start the Flask backend if it's not already running
+def start_backend():
+    backend_path = os.path.join(os.path.dirname(__file__), "backend.py")
+    subprocess.Popen(["python", backend_path])
+    time.sleep(2)  # give Flask a moment to start
+
+
+
 
 def get_highscore():
     try:
@@ -9,6 +22,9 @@ def get_highscore():
         return response.json()['highscore']
     except:
         return 0
+    
+
+
 
 # Set high score in backend
 def set_highscore(score):
