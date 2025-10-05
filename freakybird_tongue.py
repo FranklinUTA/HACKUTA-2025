@@ -90,6 +90,7 @@ last_pipe = pygame.time.get_ticks() - pipe_frequency
 score = 0
 pass_pipe = False
 button_img = pygame.image.load('img/restart.png')
+quit_img = pygame.image.load('img/quit.png')
 
 # --- Highscore file functions ---
 HIGHSCORE_FILE = 'highscore.txt'
@@ -208,6 +209,7 @@ pipe_group = pygame.sprite.Group()
 freaky = Bird(100, int(screen_height / 4))
 bird_group.add(freaky)
 button = Button(screen_width // 2 - 50, screen_height // 2 - 100, button_img)
+quit = Button(screen_width // 2 - 80, screen_height // 2 - 30, quit_img)
 
 # --- Game loop ---
 run = True
@@ -266,6 +268,8 @@ while run:
         if button.draw():
             game_over = False
             reset_game()
+        if quit.draw():
+            run = False
 
 
     for event in pygame.event.get():
