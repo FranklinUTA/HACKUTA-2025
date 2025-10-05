@@ -10,7 +10,8 @@ import pygame
 tongue_out = False
 
 def tongue_detector_thread():
-    global tongue_out
+    global tongue_out, camera_frame
+    camera_frame = None
     mp_face_mesh = mp.solutions.face_mesh
     cap = cv2.VideoCapture(0)
     with mp_face_mesh.FaceMesh(
@@ -54,6 +55,7 @@ def tongue_detector_thread():
                             if ratio > 0.12:
                                 detected = True
             tongue_out = detected
+            camera_frame = frame.copy()
             time.sleep(0.05)
 
 # Start tongue detector in a background thread
@@ -238,6 +240,17 @@ while run:
     # Only start flying when tongue is first stuck out (not mouse)
     if tongue_out and flying == False and game_over == False:
         flying = True
+
+    if camera_frame is not None:
+        # Convert OpenCV BGR to RGB
+        cam_rgb = cv2.cvtColor(camera_frame, cv2.COLOR_BGR2RGB)
+        # Resize to smaller preview (e.g., top-left corner)
+        cam_rgb = cv2.resize(cam_rgb, (200, 150))
+        # Convert to PyGame Surface
+        cam_surface = pygame.surfarray.make_surface(np.rot90(cam_rgb))
+        # Draw it (top-left corner)
+        screen.blit(cam_surface, (screen_width - 210, 10))
+
 
     pygame.display.update()
 pygame.quit()
