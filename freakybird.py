@@ -37,6 +37,12 @@ def draw_text(text, font, text_color, x, y):
     img = font.render(text, True, text_color)
     screen.blit(img, (x, y))
 
+def reset_game():
+    pipe_group.empty()
+    freaky.rect.x = 100
+    freaky.rect.y = int(screen_height / 2)
+    score = 0
+    return score
 
 class Bird(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -103,12 +109,37 @@ class Pipe(pygame.sprite.Sprite):
         if self.rect.right < 0:
             self.kill()
 
+class Button():
+    def __init__(self, x, y, image):
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+                             
+    def draw(self):
+        action = False
+
+        #get mouse position
+        pos = pygame.mouse.get_pos()
+
+        #check if mouse is over the button
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1:
+                action = True
+
+
+        #draw button
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+        return action
+
 bird_group = pygame.sprite.Group()
 pipe_group = pygame.sprite.Group()
 
 freaky = Bird(100, int(screen_height / 2))
 
 bird_group.add(freaky)
+
+#create restart button
+button = Button(screen_width // 2 - 50, screen_height // 2 - 100, button_img)
 
 #game loop
 run = True
@@ -165,6 +196,13 @@ while run:
             ground_scroll = 0
 
         pipe_group.update()
+
+    #check for game over reset
+    if game_over == True:
+        if button.draw() == True:
+            game_over = False
+            score = reset_game()
+
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
