@@ -9,7 +9,7 @@ from pygame.locals import *
 
 # Start the Flask backend if it's not already running
 def start_backend():
-    backend_path = os.path.join(os.path.dirname(__file__), "backend.py")
+    backend_path = os.path.join(os.path.dirname(__file__), "freakybackend.py")
     subprocess.Popen(["python", backend_path])
     time.sleep(2)  # give Flask a moment to start
 
@@ -220,7 +220,7 @@ while run:
 
     if score > highscore:
         set_highscore(score)
-        highscore = get_highscore()
+        highscore = score()
 
     if game_over == False and flying == True:
         #gen new pipes
