@@ -90,7 +90,7 @@ last_pipe = pygame.time.get_ticks() - pipe_frequency
 score = 0
 pass_pipe = False
 button_img = pygame.image.load('img/restart.png')
-quit_img = pygame.image.load('img/quits.png')
+quit_img = pygame.image.load('img/daaaa.png')
 
 # --- Highscore file functions ---
 HIGHSCORE_FILE = 'highscore.txt'
