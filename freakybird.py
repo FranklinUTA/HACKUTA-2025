@@ -220,7 +220,7 @@ while run:
 
     if score > highscore:
         set_highscore(score)
-        highscore = score
+        highscore = get_highscore
 
     if game_over == False and flying == True:
         #gen new pipes
