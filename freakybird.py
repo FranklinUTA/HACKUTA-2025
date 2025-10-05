@@ -20,9 +20,6 @@ def set_highscore(score):
 highscore = get_highscore()
 pygame.init()
 
-
-
-
 import pygame
 from pygame.locals import *
 import random
@@ -198,6 +195,7 @@ while run:
                 pass_pipe = False
     
     draw_text(str(score), font, white, int(screen_width / 2), 20)
+    draw_text(str(highscore), font ,white ,0,20)
 
     #check if bird has hit ground
     if freaky.rect.bottom >= 768:
@@ -215,12 +213,14 @@ while run:
             pipe_group.add(top_pipe)
             last_pipe = time_now
 
+
         #scrolling ground
         ground_scroll -= scroll_speed
         if abs(ground_scroll) > 35:
             ground_scroll = 0
 
         pipe_group.update()
+
 
     #check for game over reset
     if game_over == True:
