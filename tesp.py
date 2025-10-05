@@ -82,7 +82,12 @@ while run:
         RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         result = hand_detector.process(RGB_frame)
         if result.multi_hand_landmarks:
-            jump_signal = True  # Jump if any hand is detected
+            for hand_landmarks in result.multi_hand_landmarks:
+                # Get the y-coordinate of the wrist (landmark 0)
+                wrist_y = hand_landmarks.landmark[0].y
+                if wrist_y < 0.5:  # Hand is in the upper half of the frame
+                    jump_signal = True
+        # Jump if any hand is detected
         # Optionally show webcam window for debugging:
         # cv2.imshow("capture image", frame)
         # if cv2.waitKey(1) == ord('q'):
