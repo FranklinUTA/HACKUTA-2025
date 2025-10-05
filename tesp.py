@@ -6,14 +6,14 @@ import mediapipe as mp
 # --- Pygame setup ---
 pygame.init()
 clock = pygame.time.Clock()
-fps = 60
+fps = 120
 screen_width = 864
 screen_height = 936
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Freaky Bird')
 
 ground_scroll = 0
-scroll_speed = 4
+scroll_speed = 8
 bg = pygame.image.load('img/bg.png')
 ground_img = pygame.image.load('img/ground.png')
 
