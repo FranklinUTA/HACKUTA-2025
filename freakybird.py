@@ -1,40 +1,85 @@
-import pygame
-from pygame.locals import *
+# --- Imports ---
+import threading
 import random
-import requests
-import subprocess
+import cv2
+import mediapipe as mp
+import numpy as np
 import time
-import sys
+import pygame
 import os
 
-# --- Start backend automatically ---
-backend_process = None
-try:
-    # Assumes freakybackend.py is in the same directory
-    backend_process = subprocess.Popen([sys.executable, "freakybackend.py"])
-    # Give backend time to start
-    time.sleep(1)
-except Exception as e:
-    print("Could not start backend:", e)
+# --- Tongue detection globals ---
+tongue_out = False
+camera_frame = None
 
+# --- Tongue detector thread ---
+def tongue_detector_thread():
+    global tongue_out, camera_frame
+    camera_frame = None
+    mp_face_mesh = mp.solutions.face_mesh
+    cap = cv2.VideoCapture(0)
+    with mp_face_mesh.FaceMesh(
+        max_num_faces=1,
+        refine_landmarks=True,
+        min_detection_confidence=0.7,
+        min_tracking_confidence=0.7
+    ) as face_mesh:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                continue
+            frame = cv2.flip(frame, 1)
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = face_mesh.process(rgb)
+            detected = False
+            if results.multi_face_landmarks:
+                for face_landmarks in results.multi_face_landmarks:
+                    top_lip_idx = [13]
+                    bottom_lip_idx = [14]
+                    top_lip_pt = np.array([int(frame.shape[1]*face_landmarks.landmark[top_lip_idx[0]].x), int(frame.shape[0]*face_landmarks.landmark[top_lip_idx[0]].y)])
+                    bottom_lip_pt = np.array([int(frame.shape[1]*face_landmarks.landmark[bottom_lip_idx[0]].x), int(frame.shape[0]*face_landmarks.landmark[bottom_lip_idx[0]].y)])
+                    mouth_open = np.linalg.norm(top_lip_pt - bottom_lip_pt)
+                    if mouth_open > 18:
+                        mouth_box_idx = [78, 308, 13, 14]
+                        mouth_box = np.array([[int(frame.shape[1]*face_landmarks.landmark[i].x), int(frame.shape[0]*face_landmarks.landmark[i].y)] for i in mouth_box_idx])
+                        x, y, w, h = cv2.boundingRect(mouth_box)
+                        mouth_roi = frame[y:y+h, x:x+w]
+                        if mouth_roi.size > 0:
+                            mouth_roi_yuv = cv2.cvtColor(mouth_roi, cv2.COLOR_BGR2YUV)
+                            mouth_roi_yuv[:,:,0] = cv2.equalizeHist(mouth_roi_yuv[:,:,0])
+                            mouth_roi_eq = cv2.cvtColor(mouth_roi_yuv, cv2.COLOR_YUV2BGR)
+                            hsv = cv2.cvtColor(mouth_roi_eq, cv2.COLOR_BGR2HSV)
+                            lower = np.array([160, 80, 80])
+                            upper = np.array([179, 255, 255])
+                            mask = cv2.inRange(hsv, lower, upper)
+                            kernel = np.ones((3,3), np.uint8)
+                            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+                            mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, kernel, iterations=1)
+                            ratio = cv2.countNonZero(mask) / (w * h)
+                            if ratio > 0.12:
+                                detected = True
+            tongue_out = detected
+            camera_frame = frame.copy()
+            time.sleep(0.05)
+
+# --- Start tongue detector in a background thread ---
+detector_thread = threading.Thread(target=tongue_detector_thread, daemon=True)
+detector_thread.start()
+
+# --- Pygame/game setup ---
 pygame.init()
-
 clock = pygame.time.Clock()
 fps = 60
-
 screen_width = 864
 screen_height = 936
-
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Freaky Bird')
-
-# --- Font & colors ---
-font = pygame.font.SysFont('Comic Sans', 60)
-white = (255, 255, 255)
-
-# --- Game variables ---
 ground_scroll = 0
 scroll_speed = 4
+bg = pygame.image.load('img/bg.png')
+ground_img = pygame.image.load('img/ground.png')
+font = pygame.font.SysFont('Comic Sans', 60)
+white = (255, 255, 255)
 flying = False
 game_over = False
 pipe_gap = 200
@@ -42,27 +87,28 @@ pipe_frequency = 1500
 last_pipe = pygame.time.get_ticks() - pipe_frequency
 score = 0
 pass_pipe = False
-
-# --- Load images ---
-bg = pygame.image.load('img/bg.png')
-ground_img = pygame.image.load('img/ground.png')
 button_img = pygame.image.load('img/restart.png')
+quit_img = pygame.image.load('img/daaaa.png')
 
-# --- Backend highscore functions ---
-def get_highscore():
-    try:
-        response = requests.get('http://127.0.0.1:5000/get_highscore')
-        return response.json()['highscore']
-    except:
-        return 0
+# --- Highscore file functions ---
+HIGHSCORE_FILE = 'highscore.txt'
+def load_highscore():
+    if os.path.exists(HIGHSCORE_FILE):
+        try:
+            with open(HIGHSCORE_FILE, 'r') as f:
+                return int(f.read().strip())
+        except:
+            return 0
+    return 0
 
-def set_highscore(score):
+def save_highscore(val):
     try:
-        requests.post('http://127.0.0.1:5000/set_highscore', json={'score': score})
+        with open(HIGHSCORE_FILE, 'w') as f:
+            f.write(str(val))
     except:
         pass
 
-highscore = get_highscore()
+highscore = load_highscore()
 
 # --- Helper functions ---
 def draw_text(text, font, text_color, x, y):
@@ -70,14 +116,16 @@ def draw_text(text, font, text_color, x, y):
     screen.blit(img, (x, y))
 
 def reset_game():
-    global pass_pipe, score
+    global pass_pipe, score, last_pipe
     pipe_group.empty()
     freaky.rect.x = 100
-    freaky.rect.y = int(screen_height / 2)
+    freaky.rect.y = int(screen_height / 4)
+    freaky.vel = 0
     score = 0
     pass_pipe = False
+    last_pipe = pygame.time.get_ticks() - pipe_frequency
 
-# --- Classes (Bird, Pipe, Button) ---
+# --- Classes ---
 class Bird(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -93,31 +141,39 @@ class Bird(pygame.sprite.Sprite):
         self.vel = 0
         self.clicked = False
 
+    def flap(self):
+        """Make the bird jump/flap upward"""
+        if not game_over:
+            self.vel = -6
+
     def update(self):
-        global flying, game_over
+        global flying, game_over, tongue_out
+        # Gravity
         if flying:
-            self.vel += 0.5
-            if self.vel > 8:
-                self.vel = 8
+            self.vel += 0.3
+            if self.vel > 5:
+                self.vel = 5
             if self.rect.bottom < 768:
                 self.rect.y += int(self.vel)
 
-        if not game_over:
-            if pygame.mouse.get_pressed()[0] == 1 and not self.clicked:
-                self.clicked = True
-                self.vel = -10
-            if pygame.mouse.get_pressed()[0] == 0:
-                self.clicked = False
+        # Flap only on tongue out
+        if tongue_out and not self.clicked and not game_over:
+            self.clicked = True
+            self.flap()
+        if not tongue_out:
+            self.clicked = False
 
-            self.counter += 1
-            if self.counter > 10:
-                self.counter = 0
-                self.index += 1
-                if self.index >= len(self.images):
-                    self.index = 0
-            self.image = pygame.transform.rotate(self.images[self.index], self.vel * -2)
-        else:
-            self.image = pygame.transform.rotate(self.images[self.index], -90)
+        # Animation
+        self.counter += 1
+        flap_cooldown = 10
+        if self.counter > flap_cooldown:
+            self.counter = 0
+            self.index += 1
+            if self.index >= len(self.images):
+                self.index = 0
+        self.image = self.images[self.index]
+        # Rotate
+        self.image = pygame.transform.rotate(self.images[self.index], self.vel * -2)
 
 class Pipe(pygame.sprite.Sprite):
     def __init__(self, x, y, position):
@@ -153,11 +209,10 @@ class Button():
 # --- Groups ---
 bird_group = pygame.sprite.Group()
 pipe_group = pygame.sprite.Group()
-
-freaky = Bird(100, int(screen_height / 2))
+freaky = Bird(100, int(screen_height / 4))
 bird_group.add(freaky)
-
 button = Button(screen_width // 2 - 50, screen_height // 2 - 100, button_img)
+quit = Button(screen_width // 2 - 33, screen_height // 2 - 30, quit_img)
 
 # --- Game loop ---
 run = True
@@ -212,21 +267,34 @@ while run:
     if game_over:
         if score > highscore:
             highscore = score
-            set_highscore(highscore)
+            save_highscore(highscore)
         if button.draw():
             game_over = False
             reset_game()
+        if quit.draw():
+            run = False
 
+    # --- Event handling ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        if event.type == pygame.MOUSEBUTTONDOWN and not flying and not game_over:
-            flying = True
+        # NEW: allow flap on spacebar or mouse click
+        if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
+            if not flying and not game_over:
+                flying = True
+            freaky.flap()
+
+    # Only start flying when tongue is first stuck out (not already flying or game over)
+    if tongue_out and not flying and not game_over:
+        flying = True
+
+    # --- Webcam preview ---
+    if camera_frame is not None:
+        cam_rgb = cv2.cvtColor(camera_frame, cv2.COLOR_BGR2RGB)
+        cam_rgb = cv2.resize(cam_rgb, (200, 150))
+        cam_surface = pygame.surfarray.make_surface(np.rot90(cam_rgb))
+        screen.blit(cam_surface, (screen_width - 210, 10))
 
     pygame.display.update()
-
-# --- Clean up backend when game closes ---
-if backend_process:
-    backend_process.terminate()
 
 pygame.quit()
