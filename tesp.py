@@ -21,8 +21,8 @@ ground_img = pygame.image.load('img/ground.png')
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 600)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 400)
-mp_hands = mp.solutions.hands
-hand_detector = mp_hands.Hands()
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh()
 
 # --- Bird class ---
 class Bird(pygame.sprite.Sprite):
@@ -76,18 +76,18 @@ while run:
     clock.tick(fps)
     jump_signal = False
 
-    # --- Webcam/hand detection ---
+    # --- Webcam/face mesh detection for mouth open (tongue proxy) ---
     success, frame = cap.read()
     if success:
         RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        result = hand_detector.process(RGB_frame)
-        if result.multi_hand_landmarks:
-            for hand_landmarks in result.multi_hand_landmarks:
-                # Get the y-coordinate of the wrist (landmark 0)
-                wrist_y = hand_landmarks.landmark[0].y
-                if wrist_y < 0.5:  # Hand is in the upper half of the frame
+        face_results = face_mesh.process(RGB_frame)
+        if face_results.multi_face_landmarks:
+            for face_landmarks in face_results.multi_face_landmarks:
+                upper_lip = face_landmarks.landmark[13]
+                lower_lip = face_landmarks.landmark[14]
+                mouth_open = abs(upper_lip.y - lower_lip.y)
+                if mouth_open > 0.04:  # Adjust threshold for your face/camera
                     jump_signal = True
-        # Jump if any hand is detected
         # Optionally show webcam window for debugging:
         # cv2.imshow("capture image", frame)
         # if cv2.waitKey(1) == ord('q'):
