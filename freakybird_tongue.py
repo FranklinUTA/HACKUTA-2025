@@ -152,13 +152,11 @@ class Bird(pygame.sprite.Sprite):
             if self.rect.bottom < 768:
                 self.rect.y += int(self.vel)
 
-        # Flap on tongue out or mouse click
-        jump_triggered = False
-        if (tongue_out or pygame.mouse.get_pressed()[0] == 1) and not self.clicked and not game_over:
+        # Flap only on tongue out
+        if tongue_out and not self.clicked and not game_over:
             self.clicked = True
             self.vel = -6
-            jump_triggered = True
-        if not (tongue_out or pygame.mouse.get_pressed()[0] == 1):
+        if not tongue_out:
             self.clicked = False
 
         # Animation
@@ -269,12 +267,14 @@ while run:
             game_over = False
             reset_game()
 
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        # Only start flying when tongue is first stuck out or mouse click (not already flying or game over)
-        if (event.type == pygame.MOUSEBUTTONDOWN or tongue_out) and not flying and not game_over:
-            flying = True
+
+    # Only start flying when tongue is first stuck out (not already flying or game over)
+    if tongue_out and not flying and not game_over:
+        flying = True
 
     # --- Webcam preview ---
     if camera_frame is not None:
