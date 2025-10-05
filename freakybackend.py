@@ -1,53 +1,53 @@
 from flask import Flask, request, jsonify
 import sqlite3
-import os
 
 app = Flask(__name__)
+db_file = "freakybird.db"
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "freakyhighscore.db")
-
+# --- Initialize database and table ---
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS scores (
-                id INTEGER PRIMARY KEY,
-                highscore INTEGER
-            )
-        ''')
-        # Ensure the row exists
-        c.execute('SELECT COUNT(*) FROM scores WHERE id=1')
-        if c.fetchone()[0] == 0:
-            c.execute('INSERT INTO scores (id, highscore) VALUES (1, 0)')
-        conn.commit()
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    # Create table if it doesn't exist
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS highscore (
+            id INTEGER PRIMARY KEY,
+            score INTEGER NOT NULL
+        )
+    ''')
+    # Ensure there is always one row for highscore
+    c.execute('SELECT * FROM highscore WHERE id=1')
+    if c.fetchone() is None:
+        c.execute('INSERT INTO highscore (id, score) VALUES (1, 0)')
+    conn.commit()
+    conn.close()
 
+init_db()
+
+# --- Get highscore ---
 @app.route('/get_highscore', methods=['GET'])
 def get_highscore():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute('SELECT highscore FROM scores WHERE id=1')
-        score = c.fetchone()[0]
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('SELECT score FROM highscore WHERE id=1')
+    score = c.fetchone()[0]
+    conn.close()
     return jsonify({'highscore': score})
 
+# --- Set highscore ---
 @app.route('/set_highscore', methods=['POST'])
 def set_highscore():
     data = request.get_json()
-    new_score = int(data.get('score', 0))
+    new_score = data.get('score', 0)
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('SELECT score FROM highscore WHERE id=1')
+    current_score = c.fetchone()[0]
+    if new_score > current_score:
+        c.execute('UPDATE highscore SET score = ? WHERE id=1', (new_score,))
+        conn.commit()
+    conn.close()
+    return jsonify({'highscore': max(current_score, new_score)})
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute('SELECT highscore FROM scores WHERE id=1')
-        current = c.fetchone()[0]
-        if new_score > current:
-            c.execute('UPDATE scores SET highscore=? WHERE id=1', (new_score,))
-            conn.commit()
-            print(f"Updated highscore to {new_score}")
-            return jsonify({'highscore': new_score, 'updated': True})
-        else:
-            print(f"Score {new_score} not higher than {current}")
-            return jsonify({'highscore': current, 'updated': False})
-
-if __name__ == "__main__":
-    init_db()
-    print(f"Database initialized at {DB_PATH}")
+if __name__ == '__main__':
     app.run(debug=True)
