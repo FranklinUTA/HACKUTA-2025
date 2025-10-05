@@ -32,6 +32,7 @@ pass_pipe = False
 bg = pygame.image.load('img/bg.png')
 ground_img = pygame.image.load('img/ground.png')
 button_img = pygame.image.load('img/restart.png')
+start_img = pygame.image.load('img/startbutton.png')
 
 def draw_text(text, font, text_color, x, y):
     img = font.render(text, True, text_color)
@@ -140,6 +141,27 @@ bird_group.add(freaky)
 
 #create restart button
 button = Button(screen_width // 2 - 50, screen_height // 2 - 100, button_img)
+start_button = Button(screen_width // 2 - 50, screen_height // 2 - 100, start_img)
+start_menu = True
+while start_menu:
+    screen.blit(bg, (0, 0))
+    screen.blit(ground_img, (0, 768))
+    draw_text("Freaky Bird", font, white, screen_width // 2 - 150, 100)
+
+    # Draw start button
+    if start_button.draw():
+        start_menu = False  # Exit menu
+        flying = True       # Bird starts flying immediately
+
+    # Event handling
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            start_menu = False
+            pygame.quit()
+            exit()
+
+    pygame.display.update()
+    clock.tick(fps)
 
 #game loop
 run = True

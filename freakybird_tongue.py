@@ -91,7 +91,7 @@ score = 0
 pass_pipe = False
 button_img = pygame.image.load('img/restart.png')
 quit_img = pygame.image.load('img/daaaa.png')
-
+start_img = pygame.image.load('img/startbutton.png')
 # --- Highscore file functions ---
 HIGHSCORE_FILE = 'highscore.txt'
 def load_highscore():
@@ -210,6 +210,32 @@ freaky = Bird(100, int(screen_height / 4))
 bird_group.add(freaky)
 button = Button(screen_width // 2 - 50, screen_height // 2 - 100, button_img)
 quit = Button(screen_width // 2 - 33, screen_height // 2 - 30, quit_img)
+start = Button(screen_width // 2 - 50, screen_height // 2 - 100, start_img)
+
+start_menu = True
+while start_menu:
+    screen.blit(bg, (0, 0))
+    screen.blit(ground_img, (0, 768))
+    draw_text("Freaky Bird", font, white, screen_width // 2 - 150, 100)
+
+    # Draw start button
+    if start.draw():
+        start_menu = False  # Exit menu
+        flying = True       # Bird starts flying immediately
+
+    # Event handling
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            start_menu = False
+            pygame.quit()
+            exit()
+
+    pygame.display.update()
+    clock.tick(fps)
+
+
+
+
 
 # --- Game loop ---
 run = True
